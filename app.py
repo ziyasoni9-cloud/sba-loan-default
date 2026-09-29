@@ -1,14 +1,70 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from pathlib import Path
 
 
 # --------------------------------------------------
-# Load Model and Preprocessor
+# Page Configuration
 # --------------------------------------------------
 
-model = joblib.load("models/random_forest_model.pkl")
-preprocessor = joblib.load("models/preprocessor.pkl")
+st.set_page_config(
+    page_title="SBA Loan Default Predictor",
+    page_icon="🏦",
+    layout="wide"
+)
+
+
+# --------------------------------------------------
+# Load Final Model Artifacts
+# --------------------------------------------------
+
+BASE_DIR = Path(__file__).resolve().parent
+MODELS_DIR = BASE_DIR / "models"
+
+model = joblib.load(
+    MODELS_DIR / "final_random_forest.pkl"
+)
+
+preprocessor = joblib.load(
+    MODELS_DIR / "final_preprocessor.pkl"
+)
+
+calibrator = joblib.load(
+    MODELS_DIR / "final_calibrator.pkl"
+)
+
+
+# --------------------------------------------------
+# NAICS Sector Mapping
+# --------------------------------------------------
+
+NAICS_SECTOR_MAP = {
+    "11": "Agriculture, Forestry, Fishing",
+    "21": "Mining, Oil & Gas",
+    "22": "Utilities",
+    "23": "Construction",
+    "31": "Manufacturing",
+    "32": "Manufacturing",
+    "33": "Manufacturing",
+    "42": "Wholesale Trade",
+    "44": "Retail Trade",
+    "45": "Retail Trade",
+    "48": "Transportation & Warehousing",
+    "49": "Transportation & Warehousing",
+    "51": "Information",
+    "52": "Finance & Insurance",
+    "53": "Real Estate",
+    "54": "Professional Services",
+    "55": "Management of Companies",
+    "56": "Administrative & Support Services",
+    "61": "Educational Services",
+    "62": "Health Care & Social Assistance",
+    "71": "Arts & Entertainment",
+    "72": "Accommodation & Food Services",
+    "81": "Other Services",
+    "92": "Public Administration"
+}
 
 
 # --------------------------------------------------
@@ -36,14 +92,22 @@ def get_term_group(term):
 
 
 # --------------------------------------------------
-# Page Configuration
+# Convert NAICS Code to Sector
 # --------------------------------------------------
 
-st.set_page_config(
-    page_title="SBA Loan Default Predictor",
-    page_icon="🏦",
-    layout="wide"
-)
+def get_naics_sector(naics_code):
+
+    naics_code = str(naics_code).strip()
+
+    if len(naics_code) < 2:
+        return "Unknown"
+
+    sector_code = naics_code[:2]
+
+    return NAICS_SECTOR_MAP.get(
+        sector_code,
+        "Unknown"
+    )
 
 
 # --------------------------------------------------
@@ -53,8 +117,13 @@ st.set_page_config(
 st.title("🏦 SBA Loan Default Predictor")
 
 st.write(
-    "Enter the loan and business details to predict "
+    "Enter the loan and business details to estimate "
     "the probability of loan default."
+)
+
+st.caption(
+    "The model uses information available at loan approval "
+    "and was evaluated using a time-based split."
 )
 
 
@@ -69,12 +138,9 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    borr_state = st.selectbox(
+    borr_state = st.text_input(
         "Borrower State",
-        [
-            "AL", "CA", "FL", "GA", "IL", "NY",
-            "NC", "OH", "PA", "TX", "VA", "WA", "Other"
-        ]
+        value="CA"
     )
 
     gross_approval = st.number_input(
@@ -91,34 +157,12 @@ with col1:
         step=1000.0
     )
 
-    approval_fy = st.number_input(
-        "Approval FY",
-        min_value=1999,
-        max_value=2030,
-        value=2007,
-        step=1
-    )
-
 
 with col2:
 
-    processing_method = st.selectbox(
+    processing_method = st.text_input(
         "Processing Method",
-        [
-            "SBA Express Program",
-            "Preferred Lenders Program",
-            "7a General",
-            "Community Express",
-            "Low Documentation Program",
-            "Certified Lenders Program",
-            "International Trade Loans",
-            "Patriot Express Loans",
-            "Export Express",
-            "Contract CAPLine",
-            "Seasonal CAPLine",
-            "Working Capital CAPLine",
-            "Rural Loan Initiative"
-        ]
+        value="7a General"
     )
 
     term = st.number_input(
@@ -132,13 +176,6 @@ with col2:
         "Jobs Supported",
         min_value=0.0,
         value=10.0,
-        step=1.0
-    )
-
-    congressional_district = st.number_input(
-        "Congressional District",
-        min_value=0.0,
-        value=25.0,
         step=1.0
     )
 
@@ -156,32 +193,9 @@ with col3:
     approval_year = st.number_input(
         "Approval Year",
         min_value=1999,
-        max_value=2030,
+        max_value=2009,
         value=2007,
         step=1
-    )
-
-    disbursement_month = st.number_input(
-        "Disbursement Month",
-        min_value=1,
-        max_value=12,
-        value=7,
-        step=1
-    )
-
-    disbursement_year = st.number_input(
-        "Disbursement Year",
-        min_value=1999,
-        max_value=2030,
-        value=2007,
-        step=1
-    )
-
-    disbursement_delay = st.number_input(
-        "Disbursement Delay (Days)",
-        min_value=0.0,
-        value=30.0,
-        step=1.0
     )
 
 
@@ -196,26 +210,14 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    business_type = st.selectbox(
+    business_type = st.text_input(
         "Business Type",
-        [
-            "CORPORATION",
-            "INDIVIDUAL",
-            "PARTNERSHIP"
-        ]
+        value="CORPORATION"
     )
 
-    business_age = st.selectbox(
+    business_age = st.text_input(
         "Business Age",
-        [
-            "Existing, 5 or more years",
-            "Less than 3 years old but at least 2",
-            "Less than 4 years old but at least 3",
-            "Less than 5 years old but at least 4",
-            "New, Less than 1 Year old",
-            "Startup, Loan Funds will Open Business",
-            "Unanswered"
-        ]
+        value="Existing, 5 or more years"
     )
 
     revolver_status = st.selectbox(
@@ -231,17 +233,14 @@ with col2:
         ["N", "Y"]
     )
 
-    sold_secondary = st.selectbox(
-        "Sold in Secondary Market",
-        ["N", "Y", "Unknown"]
+    project_state = st.text_input(
+        "Project State",
+        value="CA"
     )
 
-    project_state = st.selectbox(
-        "Project State",
-        [
-            "AL", "CA", "FL", "GA", "IL", "NY",
-            "NC", "OH", "PA", "TX", "VA", "WA", "Other"
-        ]
+    district_office = st.text_input(
+        "SBA District Office",
+        value="SOUTH FLORIDA DISTRICT OFFICE"
     )
 
 
@@ -252,19 +251,12 @@ with col3:
         value="722511"
     )
 
-    naics_description = st.text_input(
-        "NAICS Description",
-        value="Full-Service Restaurants"
+    naics_sector = get_naics_sector(
+        naics_code
     )
 
-    project_county = st.text_input(
-        "Project County",
-        value="MIAMI-DADE"
-    )
-
-    district_office = st.text_input(
-        "SBA District Office",
-        value="SOUTH FLORIDA DISTRICT OFFICE"
+    st.info(
+        f"Detected NAICS Sector: {naics_sector}"
     )
 
 
@@ -277,69 +269,125 @@ if st.button(
     use_container_width=True
 ):
 
-    # Automatically create TermGroup
+    # ----------------------------------------------
+    # Basic Validation
+    # ----------------------------------------------
+
+    if sba_guaranteed > gross_approval:
+
+        st.error(
+            "SBA Guaranteed Approval cannot be greater "
+            "than Gross Approval."
+        )
+
+        st.stop()
+
+
+    if not borr_state.strip():
+
+        st.error("Please enter a Borrower State.")
+
+        st.stop()
+
+
+    if not project_state.strip():
+
+        st.error("Please enter a Project State.")
+
+        st.stop()
+
+
+    # ----------------------------------------------
+    # Feature Engineering
+    # ----------------------------------------------
 
     term_group = get_term_group(term)
 
+    naics_sector = get_naics_sector(
+        naics_code
+    )
 
-    # Create input DataFrame
+
+    # ----------------------------------------------
+    # Create Input DataFrame
+    # ----------------------------------------------
 
     input_data = pd.DataFrame([{
 
-        "BorrState": borr_state,
+        "BorrState": borr_state.strip().upper(),
+
         "GrossApproval": gross_approval,
+
         "SBAGuaranteedApproval": sba_guaranteed,
-        "ApprovalFY": approval_fy,
-        "ProcessingMethod": processing_method,
+
         "TermInMonths": term,
-        "NaicsCode": naics_code,
-        "NaicsDescription": naics_description,
-        "ProjectCounty": project_county,
-        "ProjectState": project_state,
-        "SBADistrictOffice": district_office,
-        "CongressionalDistrict": congressional_district,
-        "BusinessType": business_type,
-        "BusinessAge": business_age,
-        "RevolverStatus": revolver_status,
+
         "JobsSupported": jobs_supported,
-        "CollateralInd": collateral,
-        "SoldSecMrktInd": sold_secondary,
+
         "ApprovalMonth": approval_month,
+
         "ApprovalYear": approval_year,
-        "DisbursementMonth": disbursement_month,
-        "DisbursementYear": disbursement_year,
-        "DisbursementDelayDays": disbursement_delay,
+
+        "ProcessingMethod": processing_method,
+
+        "NaicsSector": naics_sector,
+
+        "ProjectState": project_state.strip().upper(),
+
+        "SBADistrictOffice": district_office,
+
+        "BusinessType": business_type,
+
+        "BusinessAge": business_age,
+
+        "RevolverStatus": revolver_status,
+
+        "CollateralInd": collateral,
+
         "TermGroup": term_group
 
     }])
 
 
-    # --------------------------------------------------
-    # Preprocess Input
-    # --------------------------------------------------
+    # ----------------------------------------------
+    # Preprocess
+    # ----------------------------------------------
 
-    processed_input = preprocessor.transform(input_data)
+    processed_input = preprocessor.transform(
+        input_data
+    )
 
 
-    # --------------------------------------------------
-    # Predict Probability
-    # --------------------------------------------------
+    # ----------------------------------------------
+    # Raw Random Forest Probability
+    # ----------------------------------------------
 
-    probability = model.predict_proba(
+    raw_probability = model.predict_proba(
         processed_input
     )[0][1]
 
 
-    # --------------------------------------------------
-    # Prediction
-    # --------------------------------------------------
+    # ----------------------------------------------
+    # Calibrated Probability
+    # ----------------------------------------------
 
-    prediction = int(probability >= 0.50)
+    probability = calibrator.predict(
+        [raw_probability]
+    )[0]
 
 
-    # --------------------------------------------------
+    # ----------------------------------------------
+    # Final Prediction
+    # ----------------------------------------------
+
+    prediction = int(
+        probability >= 0.50
+    )
+
+
+    # ----------------------------------------------
     # Display Result
-    # --------------------------------------------------
+    # ----------------------------------------------
 
     st.divider()
 
@@ -351,7 +399,7 @@ if st.button(
     with col1:
 
         st.metric(
-            "Default Probability",
+            "Estimated Default Probability",
             f"{probability * 100:.2f}%"
         )
 
@@ -360,15 +408,23 @@ if st.button(
 
         if prediction == 1:
 
-            st.error("⚠️ Predicted: DEFAULT")
+            st.error(
+                "⚠️ Predicted: DEFAULT"
+            )
 
         else:
 
-            st.success("✅ Predicted: NO DEFAULT")
+            st.success(
+                "✅ Predicted: NO DEFAULT"
+            )
 
 
-    st.progress(float(probability))
+    st.progress(
+        float(probability)
+    )
 
     st.caption(
-        "Prediction threshold: 0.50"
+        "Classification threshold: 50%. "
+        "The displayed probability is calibrated using "
+        "a separate historical calibration period."
     )
