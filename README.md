@@ -186,7 +186,7 @@ The application uses the fitted preprocessing pipeline, Random Forest model, and
 
 Try the deployed application:
 
-:contentReference[oaicite:0]{index=0}
+[SBA Loan Default Predictor — Live App](https://sba-loan-default-funjvagbz2crrpt9yvqxvf.streamlit.app/)
 
 The application allows users to enter loan and business information and receive:
 - Estimated probability of loan default
