@@ -184,9 +184,13 @@ The application uses the fitted preprocessing pipeline, Random Forest model, and
 
 ## Live Demo
 
-The application can be deployed using Streamlit Community Cloud.
+Try the deployed application:
 
-The live demo link will be added here after deployment.
+:contentReference[oaicite:0]{index=0}
+
+The application allows users to enter loan and business information and receive:
+- Estimated probability of loan default
+- Final DEFAULT / NO DEFAULT prediction
 
 ## Project Structure
 
