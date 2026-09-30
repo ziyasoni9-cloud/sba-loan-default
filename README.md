@@ -11,7 +11,7 @@ The project covers the complete ML workflow:
 - Machine learning model training
 - Probability calibration
 - Model evaluation
-- Streamlit deployment
+- Streamlit application
 
 ## Problem Statement
 
@@ -19,7 +19,7 @@ Loan default prediction is a binary classification problem.
 
 Given information about a small-business loan and the business at the time of approval, the model estimates the probability that the loan will eventually default.
 
-The goal is to build a model that can identify historical patterns associated with loan default while avoiding information that would only become available after the loan was approved.
+The goal is to identify historical patterns associated with loan default while avoiding information that would only become available after the loan was approved.
 
 ## Dataset
 
@@ -116,7 +116,9 @@ This keeps the final evaluation period completely separate from both model train
 
 ## Final Test Performance
 
-Performance on the 2007–2009 test period:
+Performance on the 2007–2009 final test period.
+
+The classification metrics below use the calibrated default probabilities with a classification threshold of 50%.
 
 | Metric | Score |
 |---|---:|
@@ -127,7 +129,9 @@ Performance on the 2007–2009 test period:
 | ROC-AUC | 0.8676 |
 | PR-AUC | 0.6832 |
 
-The classification threshold used by the application is 50%.
+The 50% threshold was used to convert the calibrated default probability into the final `DEFAULT` or `NO DEFAULT` prediction.
+
+ROC-AUC and PR-AUC evaluate the model's ranking ability across thresholds, while the remaining classification metrics are reported at the 50% operating threshold.
 
 ## Performance by Year
 
@@ -176,6 +180,14 @@ The application then displays:
 - Predicted class
 - Classification threshold
 
+The application uses the fitted preprocessing pipeline, Random Forest model, and probability calibration model stored in the `models/` directory.
+
+## Live Demo
+
+The application can be deployed using Streamlit Community Cloud.
+
+The live demo link will be added here after deployment.
+
 ## Project Structure
 
 ```text
@@ -197,5 +209,3 @@ sba-loan-default/
 ├── notebooks/
 │   ├── 01_data_understanding.ipynb
 │   └── 02_modeling.ipynb
-│
-└── src/
